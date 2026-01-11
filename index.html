@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Gallery Exhibition</title>
+    <style>
+        body { margin: 0; background: #111; overflow: hidden; }
+        canvas { display: block; }
+        #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-family: sans-serif; z-index: 100; }
+    </style>
+</head>
+<body>
+    <div id="loading">جاري تحميل المعرض...</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        const loader = new GLTFLoader();
+
+        // إضاءة
+        scene.add(new THREE.AmbientLight(0xffffff, 1));
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2);
+        sunLight.position.set(5, 5, 5);
+        scene.add(sunLight);
+
+        function createVideoTexture(src) {
+            const video = document.createElement('video');
+            video.src = src;
+            video.loop = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.crossOrigin = "anonymous";
+            video.play();
+            return new THREE.VideoTexture(video);
+        }
+
+        // المصفوفات
+        const myImages = ['imageframe1.jpg', 'imageframe2.jpg', 'imageframe3.jpg', 'imageframe4.jpg']; 
+        const myVideos = ['videoscreen1.mp4', 'videoscreen2.mp4', 'videoscreen3.mp4', 'videoscreen4.mp4', 'videoscreen5.mp4'];
+
+        let model; 
+
+        loader.load('my_scene.glb', (gltf) => {
+            model = gltf.scene;
+            scene.add(model);
+            document.getElementById('loading').style.display = 'none';
+
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    // برمجة الصور
+                    for (let i = 1; i <= 4; i++) {
+                        if (child.material.name === `ImageFrame${i}`) {
+                            const tex = new THREE.TextureLoader().load(myImages[i-1]); 
+                            tex.flipY = false; 
+                            child.material = new THREE.MeshBasicMaterial({ map: tex });
+                        }
+                    }
+                    // برمجة الفيديوهات
+                    for (let i = 1; i <= 5; i++) {
+                        if (child.material.name === `VideoScreen${i}`) {
+                            const videoTex = createVideoTexture(myVideos[i-1]); 
+                            videoTex.flipY = false;
+                            child.material = new THREE.MeshBasicMaterial({ map: videoTex });
+                        }
+                    }
+                }
+            });
+
+            // --- تعديل مكان الكاميرا بناءً على طلبك ---
+            // بناءً على إحداثيات بلندر اللي بعتها (X: -0.6, Y: 1.1)
+            camera.position.set(2.5, 1.5, -0.1); 
+            controls.target.set(0, 0, 0); // الكاميرا تبص على المركز
+            controls.update();
+        });
+
+        // إعداد الري كاستر للتفاعل
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+window.addEventListener('click', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    if (!model) return;
+    const intersects = raycaster.intersectObjects(model.children, true);
+
+    if (intersects.length > 0) {
+        const clickedObj = intersects[0].object;
+        const mName = clickedObj.material.name;
+
+        console.log("الخامة اللي دوست عليها:", mName);
+
+        // فتح الفيديوهات
+        if (mName === 'fatma') {
+            window.open('videoscreen1.mp4', '_blank');
+        } else if (mName === 'fatma1') {
+            window.open('videoscreen2.mp4', '_blank');
+        } 
+        // فتح الكارت الجديد بالأنيميشن
+        else if (mName === 'card') {
+            const overlay = document.getElementById('infoCardOverlay');
+            const box = document.getElementById('infoCardBox');
+            
+            overlay.style.display = 'flex';
+            
+            setTimeout(() => {
+                overlay.style.opacity = '1';
+                box.style.transform = 'scale(1)';
+            }, 10);
+        }
+    } // إغلاق الـ if (intersects.length > 0)
+}); // إغلاق الـ addEventListener
+
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // تحديث الفيديوهات عشان تشتغل
+            scene.traverse((child) => {
+                if (child.isMesh && child.material.map instanceof THREE.VideoTexture) {
+                    child.material.map.needsUpdate = true;
+                }
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        /// تشغيل زر الإغلاق يدوياً لضمان الاستجابة
+document.getElementById('closeBtn').onclick = function() {
+    const overlay = document.getElementById('infoCardOverlay');
+    const box = document.getElementById('infoCardBox');
+    
+    overlay.style.opacity = '0';
+    box.style.transform = 'scale(0.8)';
+    
+    setTimeout(() => {
+        overlay.style.display = 'none';
+    }, 400);
+};
+
+
+    </script>
+   <div id="infoCardOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; justify-content:center; align-items:center; opacity:0; transition: opacity 0.4s ease;">
+    <div id="infoCardBox" style="background:#fff; width:auto; max-width:90%; border-radius:20px; text-align:center; transform: scale(0.8); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 15px 35px rgba(0,0,0,0.5); overflow:hidden; position:relative;">
+        
+        <img src="card1.jpg" alt="Card" style="max-width:400px; width:100%; height:auto; display:block;">
+        
+        <div style="padding:15px; background:#fff;">
+            <button id="closeBtn" style="padding:10px 40px; background:#e74c3c; color:white; border:none; border-radius:25px; cursor:pointer; font-weight:bold; transition: 0.3s;">close</button>
+        </div>
+    </div>
+</div>
+</div>
+</body>
+</html>

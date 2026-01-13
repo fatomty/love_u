@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Magic Intro & 3D Garden</title>
+    <title>Our Special Garden</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
         canvas { display: block; }
-        
-        /* تنسيق المقدمة (القلب) */
+
+        /* حاوية المقدمة (القلب) */
         #intro-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: #000; }
         
         #enter-btn {
-            display: none; position: absolute; top: 70%; left: 50%; transform: translate(-50%, -50%);
-            padding: 15px 40px; font-size: 20px; background: transparent; color: #ff3264;
+            display: none; position: absolute; top: 75%; left: 50%; transform: translate(-50%, -50%);
+            padding: 15px 40px; font-size: 18px; background: transparent; color: #ff3264;
             border: 2px solid #ff3264; border-radius: 30px; cursor: pointer; z-index: 10000;
-            transition: all 0.3s; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;
+            transition: all 0.3s; font-weight: bold; text-transform: uppercase;
         }
         #enter-btn:hover { background: #ff3264; color: #fff; box-shadow: 0 0 20px #ff3264; }
 
-        /* تنسيق موقع الـ 3D الأصلي الخاص بك */
+        /* حاوية الموقع الأصلي (3D) */
         #main-site { display: none; width: 100%; height: 100%; }
         #loading {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -48,6 +48,8 @@
 </head>
 <body>
 
+<audio id="bg-music" src="music.mp3" loop></audio>
+
 <div id="intro-container">
     <button id="enter-btn">Enter Site</button>
 </div>
@@ -69,7 +71,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
 
 <script>
-// كود أنيميشن القلب (Intro)
+/** كود القلب المتطور بكل تفاصيله **/
 let particles = [];
 let heartTargetPoints = [];
 const NUM_PARTICLES = 1000;
@@ -78,7 +80,8 @@ let counter = 0;
 let textAlpha = 0;
 
 function setup() {
-    createCanvas(windowWidth, windowHeight);
+    let cnv = createCanvas(windowWidth, windowHeight);
+    cnv.parent('intro-container');
     for (let t = 0; t < TWO_PI; t += 0.01) {
         let x = 16 * pow(sin(t), 3);
         let y = -(13 * cos(t) - 5 * cos(2 * t) - 2 * cos(3 * t) - cos(4 * t));
@@ -106,20 +109,18 @@ function draw() {
 
     if (animationPhase === 2) {
         textAlign(CENTER, CENTER);
-        textFont('Arial');
-
         // السطر الأول
         fill(255, 50, 100, textAlpha);
         noStroke();
         textSize(50);
         text("I Love You", width / 2, height / 2 - 20);
-
-        // السطر الثاني - يمكنك تغيير الجملة هنا
+        // السطر الثاني
         fill(200, 200, 200, textAlpha - 100); 
         textSize(22);
         text("fatomty", width / 2, height / 2 + 40);
 
         if (textAlpha < 255) textAlpha += 2;
+        if (textAlpha > 200) document.getElementById('enter-btn').style.display = 'block';
     }
 }
 
@@ -135,7 +136,6 @@ class Particle {
         this.history = [];
         this.target = random(heartTargetPoints);
     }
-
     behaviors() {
         if (animationPhase >= 1) {
             let arrive = this.arrive(this.target);
@@ -147,9 +147,7 @@ class Particle {
             this.applyForce(flee);
         }
     }
-
     applyForce(f) { this.acc.add(f); }
-
     update() {
         this.vel.add(this.acc);
         this.pos.add(this.vel);
@@ -159,18 +157,15 @@ class Particle {
             if (this.history.length > 8) this.history.splice(0, 1);
         }
     }
-
     arrive(target) {
         let desired = p5.Vector.sub(target, this.pos);
         let d = desired.mag();
-        let speed = this.maxSpeed;
-        if (d < 100) speed = map(d, 0, 100, 0, this.maxSpeed);
+        let speed = (d < 100) ? map(d, 0, 100, 0, this.maxSpeed) : this.maxSpeed;
         desired.setMag(speed);
         let steer = p5.Vector.sub(desired, this.vel);
         steer.limit(this.maxForce);
         return steer;
     }
-
     flee(target) {
         let desired = p5.Vector.sub(target, this.pos);
         let d = desired.mag();
@@ -180,36 +175,35 @@ class Particle {
             let steer = p5.Vector.sub(desired, this.vel);
             steer.limit(this.maxForce * 3);
             return steer;
-        } else {
-            return createVector(0, 0);
-        }
+        } else return createVector(0, 0);
     }
-
     show() {
         stroke(this.color);
         strokeWeight(2.5);
         point(this.pos.x, this.pos.y);
         if (this.history.length > 1) {
-            noFill();
-            strokeWeight(1);
-            beginShape();
+            noFill(); strokeWeight(1); beginShape();
             for (let i = 0; i < this.history.length; i++) {
                 let alpha = map(i, 0, this.history.length, 0, 80);
                 let c = color(red(this.color), green(this.color), blue(this.color), alpha);
-                stroke(c);
-                vertex(this.history[i].x, this.history[i].y);
+                stroke(c); vertex(this.history[i].x, this.history[i].y);
             }
             endShape();
         }
     }
 }
 
-// التبديل بين الـ Intro والموقع
+function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+
+// زر الدخول: تشغيل الموسيقى والتبديل للموقع
 document.getElementById('enter-btn').onclick = function() {
+    let music = document.getElementById('bg-music');
+    music.play().catch(e => console.log("Audio play failed"));
+    
     document.getElementById('intro-container').style.display = 'none';
     document.getElementById('main-site').style.display = 'block';
-    noLoop(); // إيقاف p5 لتوفير الأداء
-    initThreeJS(); // بدء تشغيل كود الـ 3D الخاص بك
+    noLoop(); // إيقاف القلب
+    initThreeJS(); // تشغيل الـ 3D
 };
 </script>
 
@@ -307,9 +301,11 @@ document.getElementById('enter-btn').onclick = function() {
                     video.style.display = 'block';
                     video.src = (mName === 'fatma') ? 'VideoScreen1.mp4' : 'VideoScreen2.mp4';
                     video.load();
-                    video.play();
-                    overlay.style.display = 'flex';
-                    setTimeout(() => { overlay.style.opacity = '1'; box.style.transform = 'scale(1)'; }, 10);
+                    video.oncanplay = () => {
+                        overlay.style.display = 'flex';
+                        setTimeout(() => { overlay.style.opacity = '1'; box.style.transform = 'scale(1)'; }, 10);
+                        video.play();
+                    };
                 } else if (mName === 'card') {
                     document.getElementById('linkBtn').style.display = 'block';
                     video.style.display = 'none'; video.pause();
@@ -340,14 +336,7 @@ document.getElementById('enter-btn').onclick = function() {
             renderer.render(scene, camera);
         }
         animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    }
+    };
 </script>
 </body>
 </html>
-

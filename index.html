@@ -1,20 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Scene - Grass & Garden</title>
+    <title>Magic Intro & 3D Garden</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
         canvas { display: block; }
-        #loading {
-            position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            color: #333; z-index: 100;
-            background: rgba(255,255,255,0.8); padding: 20px; border-radius: 10px;
+        
+        /* تنسيق المقدمة (القلب) */
+        #intro-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: #000; }
+        
+        #enter-btn {
+            display: none; position: absolute; top: 70%; left: 50%; transform: translate(-50%, -50%);
+            padding: 15px 40px; font-size: 20px; background: transparent; color: #ff3264;
+            border: 2px solid #ff3264; border-radius: 30px; cursor: pointer; z-index: 10000;
+            transition: all 0.3s; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;
         }
+        #enter-btn:hover { background: #ff3264; color: #fff; box-shadow: 0 0 20px #ff3264; }
 
-        /* حاوية العرض الموحدة (للصورة والفيديو) */
+        /* تنسيق موقع الـ 3D الأصلي الخاص بك */
+        #main-site { display: none; width: 100%; height: 100%; }
+        #loading {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #333; z-index: 100; background: rgba(255,255,255,0.8); padding: 20px; border-radius: 10px;
+        }
         #mediaOverlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.9); z-index: 10000; justify-content: center; align-items: center; 
@@ -38,20 +48,107 @@
 </head>
 <body>
 
-<div id="loading">جاري تحميل المشهد والبيئة...</div>
-
-<div id="mediaOverlay">
-    <div id="mediaBox">
-        <img id="displayImg" src="" style="max-width:500px; width:100%; height:auto; display:none;">
-        <video id="displayVideo" controls style="max-width:800px; width:100%; height:auto; display:none; background:#000; aspect-ratio: 16/9;"></video>
-        
-        <div style="padding:15px; background:#fff; display: flex; justify-content: center; gap: 15px;">
-    <button id="closeBtn" style="padding:10px 30px; background:#000; color:white; border:none; border-radius:25px; cursor:pointer; font-weight:bold;">إغلاق</button>
-    
-    <button id="linkBtn" style="padding:10px 30px; background:#ff4757; color:white; border:none; border-radius:25px; cursor:pointer; font-weight:bold;">open web</button>
+<div id="intro-container">
+    <button id="enter-btn">Enter Site</button>
 </div>
+
+<div id="main-site">
+    <div id="loading">جاري تحميل المشهد والبيئة...</div>
+    <div id="mediaOverlay">
+        <div id="mediaBox">
+            <img id="displayImg" src="" style="max-width:500px; width:100%; height:auto; display:none;">
+            <video id="displayVideo" controls style="max-width:800px; width:100%; height:auto; display:none; background:#000; aspect-ratio: 16/9;"></video>
+            <div style="padding:15px; background:#fff; display: flex; justify-content: center; gap: 15px;">
+                <button id="closeBtn" style="padding:10px 30px; background:#000; color:white; border:none; border-radius:25px; cursor:pointer; font-weight:bold;">إغلاق</button>
+                <button id="linkBtn" style="padding:10px 30px; background:#ff4757; color:white; border:none; border-radius:25px; cursor:pointer; font-weight:bold;">open web</button>
+            </div>
+        </div>
     </div>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+
+<script>
+// كود أنيميشن القلب (Intro)
+let particles = [];
+let heartTargetPoints = [];
+let animationPhase = 0;
+let counter = 0;
+let textAlpha = 0;
+let introCanvas;
+
+function setup() {
+    introCanvas = createCanvas(windowWidth, windowHeight);
+    introCanvas.parent('intro-container');
+    for (let t = 0; t < TWO_PI; t += 0.01) {
+        let x = 16 * pow(sin(t), 3);
+        let y = -(13 * cos(t) - 5 * cos(2 * t) - 2 * cos(3 * t) - cos(4 * t));
+        heartTargetPoints.push(createVector(x * 15 + width / 2, y * 15 + height / 2 - 30));
+    }
+    for (let i = 0; i < 1000; i++) particles.push(new HeartParticle());
+}
+
+function draw() {
+    background(0, 0, 0, 30);
+    counter++;
+    if (counter > 80 && animationPhase === 0) animationPhase = 1;
+    if (counter > 300 && animationPhase === 1) animationPhase = 2;
+
+    blendMode(ADD);
+    for (let p of particles) { p.update(); p.show(); }
+    blendMode(BLEND);
+
+    if (animationPhase === 2) {
+        fill(255, 50, 100, textAlpha);
+        textAlign(CENTER, CENTER);
+        textSize(40);
+        text("I Love You", width / 2, height / 2 - 20);
+        fill(255, 255, 255, textAlpha - 100);
+        textSize(18);
+        text("Welcome to our garden", width / 2, height / 2 + 40);
+        if (textAlpha < 255) textAlpha += 2;
+        if (textAlpha > 200) document.getElementById('enter-btn').style.display = 'block';
+    }
+}
+
+class HeartParticle {
+    constructor() {
+        this.pos = createVector(random(width), height + 50);
+        this.vel = createVector(random(-1,1), random(-2,-5));
+        this.acc = createVector(0,0);
+        this.target = random(heartTargetPoints);
+        this.maxSpeed = random(3, 6);
+        this.maxForce = 0.2;
+    }
+    update() {
+        if (animationPhase >= 1) {
+            let desired = p5.Vector.sub(this.target, this.pos);
+            let d = desired.mag();
+            let speed = (d < 100) ? map(d, 0, 100, 0, this.maxSpeed) : this.maxSpeed;
+            desired.setMag(speed);
+            let steer = p5.Vector.sub(desired, this.vel);
+            steer.limit(this.maxForce);
+            this.acc.add(steer);
+        }
+        this.vel.add(this.acc);
+        this.pos.add(this.vel);
+        this.acc.mult(0);
+    }
+    show() {
+        stroke(255, 50, 100, 200);
+        strokeWeight(2);
+        point(this.pos.x, this.pos.y);
+    }
+}
+
+// التبديل بين الـ Intro والموقع
+document.getElementById('enter-btn').onclick = function() {
+    document.getElementById('intro-container').style.display = 'none';
+    document.getElementById('main-site').style.display = 'block';
+    noLoop(); // إيقاف p5 لتوفير الأداء
+    initThreeJS(); // بدء تشغيل كود الـ 3D الخاص بك
+};
+</script>
 
 <script type="module">
     import * as THREE from 'three';
@@ -59,161 +156,134 @@
     import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    // 1. إعداد المشهد
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(2.5, 9, -0.1); 
+    window.initThreeJS = function() {
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(2.5, 9, -0.1); 
 
-const renderer = new THREE.WebGLRenderer({ 
-    antialias: true,
-    powerPreference: "high-performance" // بيجبر الجهاز يستخدم كارت الشاشة القوي
-});
-renderer.setSize(window.innerWidth, window.innerHeight);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); 
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        document.getElementById('main-site').appendChild(renderer.domElement);
 
-// تقليل الجودة شوية للموبايلات عشان الصفحة متقفلش
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); 
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
 
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.outputEncoding = THREE.sRGBEncoding;
-document.body.appendChild(renderer.domElement);
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load('DayEnvironmentHDRI057_8K_TONEMAPPED.jpg', (texture) => {
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            scene.background = texture;
+            scene.environment = texture;
+        });
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enablePan = false;
-    controls.enableDamping = true;
+        const myImages = ['ImageFrame1.jpg', 'imageframe2.jpg', 'imageframe3.jpg', 'imageframe4.jpg']; 
+        const myVideos = ['VideoScreen1.mp4', 'VideoScreen2.mp4'];
+        const videoObjects = [];
 
-    const textureLoader = new THREE.TextureLoader();
-    textureLoader.load('DayEnvironmentHDRI057_8K_TONEMAPPED.jpg', (texture) => {
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        scene.background = texture;
-        scene.environment = texture;
-    });
+        function createVideoTexture(src) {
+            const video = document.createElement('video');
+            video.src = src; video.loop = true; video.muted = true; video.playsInline = true;
+            video.crossOrigin = "anonymous"; video.play();
+            const vTex = new THREE.VideoTexture(video);
+            vTex.flipY = false;
+            return vTex;
+        }
 
-    const myImages = ['ImageFrame1.jpg', 'imageframe2.jpg', 'imageframe3.jpg', 'imageframe4.jpg']; 
-    const myVideos = ['VideoScreen1.mp4', 'VideoScreen2.mp4'];
-    const videoObjects = [];
+        let model;
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+        const loader = new GLTFLoader();
+        loader.setDRACOLoader(dracoLoader);
 
-    function createVideoTexture(src) {
-        const video = document.createElement('video');
-        video.src = src; video.loop = true; video.muted = true; video.playsInline = true;
-        video.crossOrigin = "anonymous"; video.play();
-        const vTex = new THREE.VideoTexture(video);
-        vTex.flipY = false;
-        return vTex;
-    }
-
-    // 3. تحميل الموديل
-    let model;
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-    const loader = new GLTFLoader();
-    loader.setDRACOLoader(dracoLoader);
-
-    loader.load('my_scene.glb', (gltf) => {
-        model = gltf.scene;
-        scene.add(model);
-        document.getElementById('loading').style.display = 'none';
-
-        model.traverse((child) => {
-            if (child.isMesh && child.material) {
-                // الصور على الشاشات داخل الموديل
-                for (let i = 1; i <= 4; i++) {
-                    if (child.material.name === `ImageFrame${i}`) {
-                        const tex = textureLoader.load(myImages[i-1]);
-                        tex.flipY = false;
-                        child.material = new THREE.MeshBasicMaterial({ map: tex });
+        loader.load('my_scene.glb', (gltf) => {
+            model = gltf.scene;
+            scene.add(model);
+            document.getElementById('loading').style.display = 'none';
+            model.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    for (let i = 1; i <= 4; i++) {
+                        if (child.material.name === `ImageFrame${i}`) {
+                            const tex = textureLoader.load(myImages[i-1]);
+                            tex.flipY = false;
+                            child.material = new THREE.MeshBasicMaterial({ map: tex });
+                        }
+                    }
+                    for (let i = 1; i <= 5; i++) {
+                        if (child.material.name === `VideoScreen${i}`) {
+                            const vTex = createVideoTexture(myVideos[i-1]);
+                            child.material = new THREE.MeshBasicMaterial({ map: vTex });
+                            videoObjects.push(vTex);
+                        }
                     }
                 }
-                // الفيديوهات على الشاشات داخل الموديل
-                for (let i = 1; i <= 5; i++) {
-                    if (child.material.name === `VideoScreen${i}`) {
-                        const vTex = createVideoTexture(myVideos[i-1]);
-                        child.material = new THREE.MeshBasicMaterial({ map: vTex });
-                        videoObjects.push(vTex);
-                    }
+            });
+        });
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener('click', (event) => {
+            if (document.getElementById('main-site').style.display === 'none') return;
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            if (!model) return;
+            const intersects = raycaster.intersectObjects(model.children, true);
+            if (intersects.length > 0) {
+                const mName = intersects[0].object.material.name;
+                const overlay = document.getElementById('mediaOverlay');
+                const box = document.getElementById('mediaBox');
+                const img = document.getElementById('displayImg');
+                const video = document.getElementById('displayVideo');
+
+                if (mName === 'fatma' || mName === 'fatma1') {
+                    document.getElementById('linkBtn').style.display = 'none';
+                    img.style.display = 'none';
+                    video.style.display = 'block';
+                    video.src = (mName === 'fatma') ? 'VideoScreen1.mp4' : 'VideoScreen2.mp4';
+                    video.load();
+                    video.play();
+                    overlay.style.display = 'flex';
+                    setTimeout(() => { overlay.style.opacity = '1'; box.style.transform = 'scale(1)'; }, 10);
+                } else if (mName === 'card') {
+                    document.getElementById('linkBtn').style.display = 'block';
+                    video.style.display = 'none'; video.pause();
+                    img.style.display = 'block'; img.src = 'card1.jpg';
+                    overlay.style.display = 'flex';
+                    setTimeout(() => { overlay.style.opacity = '1'; box.style.transform = 'scale(1)'; }, 10);
                 }
             }
         });
-    });
 
-    // 4. التفاعل (Raycaster)
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    window.addEventListener('click', (event) => {
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
-
-        if (!model) return;
-        const intersects = raycaster.intersectObjects(model.children, true);
-
-        if (intersects.length > 0) {
-            const mName = intersects[0].object.material.name;
+        document.getElementById('closeBtn').onclick = function() {
             const overlay = document.getElementById('mediaOverlay');
             const box = document.getElementById('mediaBox');
-            const img = document.getElementById('displayImg');
-            const video = document.getElementById('displayVideo');
+            document.getElementById('displayVideo').pause();
+            overlay.style.opacity = '0';
+            box.style.transform = 'scale(0.8)';
+            setTimeout(() => { overlay.style.display = 'none'; }, 400);
+        };
 
-            const openPopUp = () => {
-                overlay.style.display = 'flex';
-                setTimeout(() => { overlay.style.opacity = '1'; box.style.transform = 'scale(1)'; }, 10);
-            };
+        document.getElementById('linkBtn').onclick = function() {
+            window.open('https://fahtomty.github.io/love_u/', '_blank');
+        };
 
-            // لو داس على فاطمة (يفتح فيديو في نفس الصفحة)
-            // لو داس على فاطمة (يفتح فيديو)
-if (mName === 'fatma' || mName === 'fatma1') {
-    document.getElementById('linkBtn').style.display = 'none'; // نخفي زرار اللينك للفيديوهات
-    img.style.display = 'none';
-    video.style.display = 'block';
-    video.src = (mName === 'fatma') ? 'VideoScreen1.mp4' : 'VideoScreen2.mp4';
-    video.load();
-    video.oncanplay = () => { openPopUp(); video.play(); };
-} 
-// لو داس على الكارت
-else if (mName === 'card') {
-    document.getElementById('linkBtn').style.display = 'block'; // نظهر زرار اللينك للكارت بس
-    video.style.display = 'none'; video.pause();
-    img.style.display = 'block';
-    img.src = 'card1.jpg';
-    openPopUp();
-}
+        function animate() {
+            requestAnimationFrame(animate);
+            videoObjects.forEach(vTex => { if (vTex) vTex.needsUpdate = true; });
+            controls.update();
+            renderer.render(scene, camera);
         }
-    });
+        animate();
 
-    // زر الإغلاق الموحد
-    document.getElementById('closeBtn').onclick = function() {
-        const overlay = document.getElementById('mediaOverlay');
-        const box = document.getElementById('mediaBox');
-        const video = document.getElementById('displayVideo');
-        video.pause(); video.src = ""; // إيقاف الفيديو نهائياً
-        overlay.style.opacity = '0';
-        box.style.transform = 'scale(0.8)';
-        setTimeout(() => { overlay.style.display = 'none'; }, 400);
-    };
-
-    function animate() {
-        requestAnimationFrame(animate);
-        videoObjects.forEach(vTex => { if (vTex) vTex.needsUpdate = true; });
-        controls.update();
-        renderer.render(scene, camera);
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     }
-    // برمجة زرار اللينك
-document.getElementById('linkBtn').onclick = function() {
-    window.open('https://fahtomty.github.io/love_u/', '_blank'); // استبدل اللينك باللي انت عايزه
-};
-    animate();
-
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
 </script>
 </body>
-
 </html>
-
-
-
-
-

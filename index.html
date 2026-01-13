@@ -48,7 +48,7 @@
         <div style="padding:15px; background:#fff; display: flex; justify-content: center; gap: 15px;">
     <button id="closeBtn" style="padding:10px 30px; background:#000; color:white; border:none; border-radius:25px; cursor:pointer; font-weight:bold;">إغلاق</button>
     
-    <button id="linkBtn" style="padding:10px 30px; background:#ff4757; color:white; border:none; border-radius:25px; cursor:pointer; font-weight:bold;">https://fahtomty.github.io/love_u/</button>
+    <button id="linkBtn" style="padding:10px 30px; background:#ff4757; color:white; border:none; border-radius:25px; cursor:pointer; font-weight:bold;">open web</button>
 </div>
     </div>
 </div>
@@ -160,20 +160,23 @@ document.body.appendChild(renderer.domElement);
             };
 
             // لو داس على فاطمة (يفتح فيديو في نفس الصفحة)
-            if (mName === 'fatma' || mName === 'fatma1') {
-                img.style.display = 'none';
-                video.style.display = 'block';
-                video.src = (mName === 'fatma') ? 'VideoScreen1.mp4' : 'VideoScreen2.mp4';
-                video.load();
-                video.oncanplay = () => { openPopUp(); video.play(); };
-            } 
-            // لو داس على الكارت
-            else if (mName === 'card') {
-                video.style.display = 'none'; video.pause();
-                img.style.display = 'block';
-                img.src = 'card1.jpg';
-                openPopUp();
-            }
+            // لو داس على فاطمة (يفتح فيديو)
+if (mName === 'fatma' || mName === 'fatma1') {
+    document.getElementById('linkBtn').style.display = 'none'; // نخفي زرار اللينك للفيديوهات
+    img.style.display = 'none';
+    video.style.display = 'block';
+    video.src = (mName === 'fatma') ? 'VideoScreen1.mp4' : 'VideoScreen2.mp4';
+    video.load();
+    video.oncanplay = () => { openPopUp(); video.play(); };
+} 
+// لو داس على الكارت
+else if (mName === 'card') {
+    document.getElementById('linkBtn').style.display = 'block'; // نظهر زرار اللينك للكارت بس
+    video.style.display = 'none'; video.pause();
+    img.style.display = 'block';
+    img.src = 'card1.jpg';
+    openPopUp();
+}
         }
     });
 
@@ -194,6 +197,10 @@ document.body.appendChild(renderer.domElement);
         controls.update();
         renderer.render(scene, camera);
     }
+    // برمجة زرار اللينك
+document.getElementById('linkBtn').onclick = function() {
+    window.open('https://www.google.com', '_blank'); // استبدل اللينك باللي انت عايزه
+};
     animate();
 
     window.addEventListener('resize', () => {
@@ -205,6 +212,7 @@ document.body.appendChild(renderer.domElement);
 </body>
 
 </html>
+
 
 
 

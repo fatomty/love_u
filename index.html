@@ -3,10 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Love Scene</title>
+    <title>3D Scene - Grass & Garden</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; }
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
         canvas { display: block; }
+        #loading {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #333; z-index: 100;
+            background: rgba(255,255,255,0.8); padding: 20px; border-radius: 10px;
+        }
+
+        /* حاوية العرض الموحدة (للصورة والفيديو) */
+        #mediaOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.9); z-index: 10000; justify-content: center; align-items: center; 
+            opacity: 0; transition: opacity 0.4s ease;
+        }
+        #mediaBox {
+            background: #fff; width: auto; max-width: 90%; border-radius: 20px; 
+            text-align: center; transform: scale(0.8); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5); overflow: hidden;
+        }
     </style>
 
     <script type="importmap">
@@ -20,49 +38,151 @@
 </head>
 <body>
 
+<div id="loading">جاري تحميل المشهد والبيئة...</div>
+
+<div id="mediaOverlay">
+    <div id="mediaBox">
+        <img id="displayImg" src="" style="max-width:500px; width:100%; height:auto; display:none;">
+        <video id="displayVideo" controls style="max-width:800px; width:100%; height:auto; display:none; background:#000; aspect-ratio: 16/9;"></video>
+        
+        <div style="padding:15px; background:#fff;">
+            <button id="closeBtn" style="padding:10px 40px; background:#000; color:white; border:none; border-radius:25px; cursor:pointer; font-weight:bold;">إغلاق</button>
+        </div>
+    </div>
+</div>
+
 <script type="module">
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    // إعداد المشهد
+    // 1. إعداد المشهد
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(2.36, 1.91, 0.15);
+    camera.position.set(2.5, 9, -0.1); 
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.outputEncoding = THREE.sRGBEncoding;
     document.body.appendChild(renderer.domElement);
 
-    // الإضاءة
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1);
-    scene.add(ambientLight);
-    const sunLight = new THREE.DirectionalLight(0xffffff, 2);
-    sunLight.position.set(5, 5, 5);
-    scene.add(sunLight);
-
-    // التحكم
     const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enablePan = false;
+    controls.enableDamping = true;
 
-    // إعداد DRACO لفك الضغط (Edgebreaker & Mesh)
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load('DayEnvironmentHDRI057_8K_TONEMAPPED.jpg', (texture) => {
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        scene.background = texture;
+        scene.environment = texture;
+    });
+
+    const myImages = ['imageframe1.jpg', 'imageframe2.jpg', 'imageframe3.jpg', 'imageframe4.jpg']; 
+    const myVideos = ['videoscreen1.mp4', 'videoscreen2.mp4', 'videoscreen3.mp4', 'videoscreen4.mp4', 'videoscreen5.mp4'];
+    const videoObjects = [];
+
+    function createVideoTexture(src) {
+        const video = document.createElement('video');
+        video.src = src; video.loop = true; video.muted = true; video.playsInline = true;
+        video.crossOrigin = "anonymous"; video.play();
+        const vTex = new THREE.VideoTexture(video);
+        vTex.flipY = false;
+        return vTex;
+    }
+
+    // 3. تحميل الموديل
+    let model;
     const dracoLoader = new DRACOLoader();
     dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-
-    // تحميل الموديل
     const loader = new GLTFLoader();
     loader.setDRACOLoader(dracoLoader);
 
     loader.load('my_scene.glb', (gltf) => {
-        scene.add(gltf.scene);
-        console.log("Model loaded!");
-    }, undefined, (error) => {
-        console.error("Error:", error);
+        model = gltf.scene;
+        scene.add(model);
+        document.getElementById('loading').style.display = 'none';
+
+        model.traverse((child) => {
+            if (child.isMesh && child.material) {
+                // الصور على الشاشات داخل الموديل
+                for (let i = 1; i <= 4; i++) {
+                    if (child.material.name === `ImageFrame${i}`) {
+                        const tex = textureLoader.load(myImages[i-1]);
+                        tex.flipY = false;
+                        child.material = new THREE.MeshBasicMaterial({ map: tex });
+                    }
+                }
+                // الفيديوهات على الشاشات داخل الموديل
+                for (let i = 1; i <= 5; i++) {
+                    if (child.material.name === `VideoScreen${i}`) {
+                        const vTex = createVideoTexture(myVideos[i-1]);
+                        child.material = new THREE.MeshBasicMaterial({ map: vTex });
+                        videoObjects.push(vTex);
+                    }
+                }
+            }
+        });
     });
+
+    // 4. التفاعل (Raycaster)
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    window.addEventListener('click', (event) => {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        if (!model) return;
+        const intersects = raycaster.intersectObjects(model.children, true);
+
+        if (intersects.length > 0) {
+            const mName = intersects[0].object.material.name;
+            const overlay = document.getElementById('mediaOverlay');
+            const box = document.getElementById('mediaBox');
+            const img = document.getElementById('displayImg');
+            const video = document.getElementById('displayVideo');
+
+            const openPopUp = () => {
+                overlay.style.display = 'flex';
+                setTimeout(() => { overlay.style.opacity = '1'; box.style.transform = 'scale(1)'; }, 10);
+            };
+
+            // لو داس على فاطمة (يفتح فيديو في نفس الصفحة)
+            if (mName === 'fatma' || mName === 'fatma1') {
+                img.style.display = 'none';
+                video.style.display = 'block';
+                video.src = (mName === 'fatma') ? 'videoscreen1.mp4' : 'videoscreen2.mp4';
+                video.load();
+                video.oncanplay = () => { openPopUp(); video.play(); };
+            } 
+            // لو داس على الكارت
+            else if (mName === 'card') {
+                video.style.display = 'none'; video.pause();
+                img.style.display = 'block';
+                img.src = 'card1.jpg';
+                openPopUp();
+            }
+        }
+    });
+
+    // زر الإغلاق الموحد
+    document.getElementById('closeBtn').onclick = function() {
+        const overlay = document.getElementById('mediaOverlay');
+        const box = document.getElementById('mediaBox');
+        const video = document.getElementById('displayVideo');
+        video.pause(); video.src = ""; // إيقاف الفيديو نهائياً
+        overlay.style.opacity = '0';
+        box.style.transform = 'scale(0.8)';
+        setTimeout(() => { overlay.style.display = 'none'; }, 400);
+    };
 
     function animate() {
         requestAnimationFrame(animate);
+        videoObjects.forEach(vTex => { if (vTex) vTex.needsUpdate = true; });
         controls.update();
         renderer.render(scene, camera);
     }

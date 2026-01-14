@@ -19,6 +19,16 @@
         }
         #enter-btn:hover { background: #ff3264; color: #fff; box-shadow: 0 0 20px #ff3264; }
 
+        /* زر التحكم في الموسيقى العائم */
+        #music-toggle {
+            position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px;
+            border-radius: 50%; background: rgba(255, 50, 100, 0.7); color: white;
+            border: 2px solid #fff; cursor: pointer; z-index: 10001; display: none;
+            align-items: center; justify-content: center; font-size: 20px;
+            box-shadow: 0 0 15px rgba(255, 50, 100, 0.5); transition: 0.3s;
+        }
+        #music-toggle:hover { transform: scale(1.1); background: #ff3264; }
+
         /* حاوية الموقع الأصلي (3D) */
         #main-site { display: none; width: 100%; height: 100%; }
         #loading {
@@ -49,6 +59,7 @@
 <body>
 
 <audio id="bg-music" src="music.mp3" loop></audio>
+<button id="music-toggle">🔊</button>
 
 <div id="intro-container">
     <button id="enter-btn">Enter Site</button>
@@ -71,7 +82,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
 
 <script>
-/** كود القلب المتطور بكل تفاصيله **/
+/** كود القلب **/
 let particles = [];
 let heartTargetPoints = [];
 const NUM_PARTICLES = 1000;
@@ -95,30 +106,24 @@ function setup() {
 function draw() {
     background(0, 0, 0, 25);
     counter++;
-
     if (counter > 80 && animationPhase === 0) animationPhase = 1;
     if (counter > 350 && animationPhase === 1) animationPhase = 2;
 
     blendMode(ADD); 
     for (let p of particles) {
-        p.behaviors();
-        p.update();
-        p.show();
+        p.behaviors(); p.update(); p.show();
     }
     blendMode(BLEND);
 
     if (animationPhase === 2) {
         textAlign(CENTER, CENTER);
-        // السطر الأول
         fill(255, 50, 100, textAlpha);
         noStroke();
         textSize(50);
         text("I Love You", width / 2, height / 2 - 20);
-        // السطر الثاني
         fill(200, 200, 200, textAlpha - 100); 
         textSize(22);
         text("fatomty", width / 2, height / 2 + 40);
-
         if (textAlpha < 255) textAlpha += 2;
         if (textAlpha > 200) document.getElementById('enter-btn').style.display = 'block';
     }
@@ -141,17 +146,13 @@ class Particle {
             let arrive = this.arrive(this.target);
             let mouse = createVector(mouseX, mouseY);
             let flee = this.flee(mouse);
-            arrive.mult(1);
-            flee.mult(5);
-            this.applyForce(arrive);
-            this.applyForce(flee);
+            arrive.mult(1); flee.mult(5);
+            this.applyForce(arrive); this.applyForce(flee);
         }
     }
     applyForce(f) { this.acc.add(f); }
     update() {
-        this.vel.add(this.acc);
-        this.pos.add(this.vel);
-        this.acc.mult(0);
+        this.vel.add(this.acc); this.pos.add(this.vel); this.acc.mult(0);
         if (animationPhase === 2) {
             this.history.push(this.pos.copy());
             if (this.history.length > 8) this.history.splice(0, 1);
@@ -170,17 +171,14 @@ class Particle {
         let desired = p5.Vector.sub(target, this.pos);
         let d = desired.mag();
         if (d < 60) {
-            desired.setMag(this.maxSpeed);
-            desired.mult(-1);
+            desired.setMag(this.maxSpeed); desired.mult(-1);
             let steer = p5.Vector.sub(desired, this.vel);
             steer.limit(this.maxForce * 3);
             return steer;
         } else return createVector(0, 0);
     }
     show() {
-        stroke(this.color);
-        strokeWeight(2.5);
-        point(this.pos.x, this.pos.y);
+        stroke(this.color); strokeWeight(2.5); point(this.pos.x, this.pos.y);
         if (this.history.length > 1) {
             noFill(); strokeWeight(1); beginShape();
             for (let i = 0; i < this.history.length; i++) {
@@ -195,15 +193,29 @@ class Particle {
 
 function windowResized() { resizeCanvas(windowWidth, windowHeight); }
 
-// زر الدخول: تشغيل الموسيقى والتبديل للموقع
+// منطق زر الدخول والتحكم في الموسيقى
+const music = document.getElementById('bg-music');
+const musicToggle = document.getElementById('music-toggle');
+
 document.getElementById('enter-btn').onclick = function() {
-    let music = document.getElementById('bg-music');
     music.play().catch(e => console.log("Audio play failed"));
-    
+    musicToggle.style.display = 'flex'; // إظهار زر الموسيقى بعد الدخول
     document.getElementById('intro-container').style.display = 'none';
     document.getElementById('main-site').style.display = 'block';
-    noLoop(); // إيقاف القلب
-    initThreeJS(); // تشغيل الـ 3D
+    noLoop(); 
+    initThreeJS(); 
+};
+
+musicToggle.onclick = function() {
+    if (music.paused) {
+        music.play();
+        this.innerHTML = "🔊";
+        this.style.background = "rgba(255, 50, 100, 0.7)";
+    } else {
+        music.pause();
+        this.innerHTML = "🔇";
+        this.style.background = "rgba(100, 100, 100, 0.7)";
+    }
 };
 </script>
 
